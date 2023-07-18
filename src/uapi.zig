@@ -17,14 +17,14 @@ const c = @cImport({
     @cInclude("linux/gpio.h"); // system UAPI header
 });
 
-/// Imported macros and constants from ABI.
-pub const GPIO_V2_LINE_SET_VALUES_IOCTL = c.GPIO_V2_LINE_SET_VALUES_IOCTL;
-pub const GPIO_V2_GET_LINE_IOCTL = c.GPIO_V2_GET_LINE_IOCTL;
-pub const GPIO_V2_LINE_NUM_ATTRS_MAX = c.GPIO_V2_LINE_NUM_ATTRS_MAX;
+/// Imported macros and constants from ABI. TODO: get rid of weird casting.
+pub const GPIO_V2_LINE_SET_VALUES_IOCTL: c_int = @bitCast(@as(c_uint, @intCast(c.GPIO_V2_LINE_SET_VALUES_IOCTL)));
+pub const GPIO_V2_GET_LINE_IOCTL: c_int = @bitCast(@as(c_uint, @intCast(c.GPIO_V2_GET_LINE_IOCTL)));
+pub const GPIO_V2_LINE_NUM_ATTRS_MAX: usize = c.GPIO_V2_LINE_NUM_ATTRS_MAX;
 pub const GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES = c.GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES;
 pub const GPIO_V2_LINES_MAX = c.GPIO_V2_LINES_MAX;
 pub const GPIO_MAX_NAME_SIZE = c.GPIO_MAX_NAME_SIZE;
-pub const GPIO_V2_LINE_FLAG_INPUT = c.GPIO_V2_LINE_FLAG_INPUT;
+pub const GPIO_V2_LINE_FLAG_INPUT: u64 = c.GPIO_V2_LINE_FLAG_INPUT;
 
 pub const LineValues = extern struct {
     //! Values of GPIO lines.
@@ -42,7 +42,7 @@ pub const LineValues = extern struct {
     pub inline fn new(pin: gpio.GpioPin, val: gpio.GpioPin.Bit) Self {
         std.debug.assert(pin.direction == gpio.GpioPin.Direction.Output);
         return LineValues{
-            .bits = @as(u64, @enumToInt(val)) << pin.index,
+            .bits = @as(u64, @intFromEnum(val)) << pin.index,
             .mask = @as(u64, 1) << pin.index,
         };
     }
@@ -51,7 +51,7 @@ pub const LineValues = extern struct {
     pub inline fn set(self: *LineValues, pin: gpio.GpioPin, val: gpio.GpioPin.Bit) void {
         std.debug.assert(pin.direction == gpio.GpioPin.Direction.Output);
         self.bits |= (1 << pin.index);
-        self.mask |= (@as(u64, @enumToInt(val)) << pin.index);
+        self.mask |= (@as(u64, @intFromEnum(val)) << pin.index);
     }
 };
 

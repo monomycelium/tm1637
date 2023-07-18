@@ -57,7 +57,7 @@ pub fn init(
     );
 
     return Self{
-        .brightness = brightness | @enumToInt(State.ON),
+        .brightness = brightness | @intFromEnum(State.ON),
         .gpio_chip = chip,
         .pin_clk = pins[0],
         .pin_dio = pins[1],
@@ -102,8 +102,8 @@ inline fn waitForAck(self: *Self) void {
 /// Writes a byte to the display.
 inline fn writeByte(self: *Self, byte: u8) void {
     for (0..8) |i| {
-        const bit = (byte >> @truncate(u3, i)) & 1;
-        self.pin_dio.pinSet(@intToEnum(gpio.GpioPin.Bit, bit));
+        const bit = (byte >> @truncate(i)) & 1;
+        self.pin_dio.pinSet(@enumFromInt(bit));
         self.pin_clk.pinSet(.High);
         // os.nanosleep(0, delay_ns);
         self.pin_clk.pinSet(.Low);
@@ -121,7 +121,7 @@ inline fn writeCommand(self: *Self, byte: u8) void {
 
 /// Sets state of TM1637 display (whether it is on or off).
 pub fn setState(self: *Self, state: State) void {
-    self.brightness |= @enumToInt(state);
+    self.brightness |= @intFromEnum(state);
     self.writeCommand(command_data);
     self.writeCommand(command_ctrl | @as(u8, self.brightness));
 }
@@ -129,7 +129,7 @@ pub fn setState(self: *Self, state: State) void {
 /// Sets brightness of TM1637 display to a value between 0 and 7. (0 being the
 /// lowest, and 7 being the highest). Turns display on if it is turned off.
 pub fn setBrightness(self: *Self, brightness: u3) void {
-    self.brightness = brightness | @enumToInt(State.ON);
+    self.brightness = brightness | @intFromEnum(State.ON);
     self.writeCommand(command_data);
     self.writeCommand(command_ctrl | @as(u8, self.brightness));
 }

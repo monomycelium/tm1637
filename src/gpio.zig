@@ -55,22 +55,22 @@ pub const GpioChip = struct {
         std.debug.assert(offsets.len == pins.len);
 
         var request = mem.zeroes(uapi.LineRequest);
-        request.num_lines = @truncate(u32, offsets.len);
-        request.config.flags |= @intCast(u64, uapi.GPIO_V2_LINE_FLAG_INPUT << @enumToInt(dir));
+        request.num_lines = @truncate(offsets.len);
+        request.config.flags |= uapi.GPIO_V2_LINE_FLAG_INPUT << @intFromEnum(dir);
         request.config.num_attrs = 1;
         request.config.attrs[0].attr.id = uapi.GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES;
         mem.copyForwards(u8, &request.consumer, label);
 
         for (offsets, 0..) |offset, i| {
-            const index: Offset = @truncate(Offset, i);
+            const index: Offset = @truncate(i);
             request.offsets[i] = offset;
-            request.config.attrs[0].attr.attr.values |= @as(u64, @enumToInt(val)) << index; // set default value
+            request.config.attrs[0].attr.attr.values |= @as(u64, @intFromEnum(val)) << index; // set default value
             request.config.attrs[0].mask |= @as(u64, 1) << index;
         }
 
         switch (os.errno(std.c.ioctl(
             self.file,
-            @bitCast(c_int, @intCast(c_uint, uapi.GPIO_V2_GET_LINE_IOCTL)),
+            uapi.GPIO_V2_GET_LINE_IOCTL,
             &request,
         ))) {
             .SUCCESS => {},
@@ -83,7 +83,7 @@ pub const GpioChip = struct {
 
         if (request.fd <= 0) return GpioError.PinRequestError;
         for (pins, 0..) |*pin, i|
-            pin.* = GpioPin{ .fd = request.fd, .direction = dir, .index = @truncate(Offset, i) };
+            pin.* = GpioPin{ .fd = request.fd, .direction = dir, .index = @truncate(i) };
     }
 
     /// Request a `GpioPin`.
@@ -97,16 +97,16 @@ pub const GpioChip = struct {
         var request = mem.zeroes(uapi.LineRequest);
         request.num_lines = 1;
         request.offsets[0] = offset;
-        request.config.flags |= @intCast(u64, uapi.GPIO_V2_LINE_FLAG_INPUT << @enumToInt(dir));
+        request.config.flags |= uapi.GPIO_V2_LINE_FLAG_INPUT << @intFromEnum(dir);
         request.config.num_attrs = 1;
         request.config.attrs[0].attr.id = uapi.GPIO_V2_LINE_ATTR_ID_OUTPUT_VALUES;
-        request.config.attrs[0].attr.attr.values = @enumToInt(val); // set default value
+        request.config.attrs[0].attr.attr.values = @intFromEnum(val); // set default value
         request.config.attrs[0].mask = 1;
         mem.copyForwards(u8, &request.consumer, label);
 
         switch (os.errno(std.c.ioctl(
             self.file,
-            @bitCast(c_int, @intCast(c_uint, uapi.GPIO_V2_GET_LINE_IOCTL)),
+            uapi.GPIO_V2_GET_LINE_IOCTL,
             &request,
         ))) {
             .SUCCESS => {},
@@ -122,11 +122,11 @@ pub const GpioChip = struct {
     }
 
     inline fn major(rdev: os.dev_t) u32 {
-        return @intCast(u32, rdev >> 8);
+        return @intCast(rdev >> 8);
     }
 
     inline fn minor(rdev: os.dev_t) u32 {
-        return @intCast(u32, rdev & 0xFF);
+        return @intCast(rdev & 0xFF);
     }
 
     /// Checks whether file at `path` is a valid GPIO character device.
@@ -168,7 +168,7 @@ pub const GpioPin = struct {
 
         /// Toggle a bit and return it.
         pub inline fn toggle(self: *Bit) Bit {
-            return @intToEnum(Bit, @boolToInt(@enumToInt(self.*) == 0));
+            return @enumFromInt(@intFromBool(@intFromEnum(self.*) == 0));
         }
     };
 
@@ -192,7 +192,7 @@ pub const GpioPin = struct {
 
         switch (os.errno(std.c.ioctl(
             pin.fd,
-            @bitCast(c_int, @intCast(c_uint, uapi.GPIO_V2_LINE_SET_VALUES_IOCTL)),
+            uapi.GPIO_V2_LINE_SET_VALUES_IOCTL,
             &data,
         ))) {
             .SUCCESS => {},
